@@ -1,0 +1,28 @@
+[SIMULATED HISTORICAL INCIDENT LOG — FOR DEMONSTRATION PURPOSES ONLY]
+
+INCIDENT: HIST-0019
+TITLE: CPU Thermal Excursion — Mission Day 98
+SEVERITY: MEDIUM
+STATUS: RESOLVED
+SUBSYSTEM: Thermal
+
+SUMMARY:
+Mission Day 98: CPU temperature exceeded upper warning threshold during intensive imaging payload operations.
+
+OBSERVED PARAMETERS:
+- CPU temperature reached 71°C during payload processing
+- Payload temperature 37°C
+- CPU load 94% sustained for 45 minutes
+- Power consumption 11.2W
+
+ROOT CAUSE:
+Scheduled image processing task ran simultaneously with housekeeping routines, causing CPU overload and thermal buildup. Thermal control system response was adequate but slow.
+
+RESOLUTION:
+- Reduced CPU load by suspending housekeeping routines
+- Temperature returned to 52°C within 15 minutes
+- Task scheduling modified to prevent simultaneous high-load operations
+
+LESSONS LEARNED:
+1. Task scheduling must account for thermal impact
+2. CPU load > 80% sustained for > 20 minutes triggers thermal review

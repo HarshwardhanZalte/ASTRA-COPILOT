@@ -1,0 +1,36 @@
+[SIMULATED MISSION DOCUMENT — FOR DEMONSTRATION PURPOSES ONLY]
+
+DOCUMENT: THM-PROC-001
+TITLE: Thermal Management and Overtemperature Response
+SUBSYSTEM: Thermal
+VERSION: 2.1
+
+1. OVERVIEW
+This procedure covers thermal subsystem monitoring and response for CPU and payload temperature anomalies on SAT-01.
+
+2. NORMAL OPERATING RANGES
+- CPU Temperature: 30°C - 65°C (nominal: 45°C)
+- Payload Temperature: 10°C - 35°C (nominal: 20°C)
+- Power Consumption: 7.0W - 10.5W (nominal: 8.5W)
+
+3. THERMAL RUNAWAY INDICATORS
+a) CPU temperature exceeds 70°C
+b) Payload temperature exceeds 40°C
+c) Temperature increase rate > 2°C per minute
+d) Power consumption increasing with temperature
+e) CPU thermal throttling activating
+
+4. DIAGNOSTIC PROCEDURE — THERMAL ANOMALY
+Step 1: Verify temperature readings from redundant sensors
+Step 2: Check thermal control system heater/cooler status
+Step 3: Review CPU load and memory usage trends
+Step 4: Check payload operational status
+Step 5: Assess thermal coupling between subsystems
+
+5. RECOVERY ACTIONS (HUMAN APPROVAL REQUIRED)
+Action 1: Reduce CPU load by suspending non-critical processes
+Action 2: Activate supplemental cooling if available
+Action 3: Reduce payload duty cycle
+Action 4: Orient spacecraft for passive cooling
+
+WARNING: All thermal management actions require human operator approval.

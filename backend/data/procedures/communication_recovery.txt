@@ -1,0 +1,35 @@
+[SIMULATED MISSION DOCUMENT — FOR DEMONSTRATION PURPOSES ONLY]
+
+DOCUMENT: COM-PROC-001
+TITLE: Communication Subsystem Recovery Procedure
+SUBSYSTEM: Communication
+VERSION: 2.8
+
+1. OVERVIEW
+This document describes recovery procedures for communication link degradation.
+
+2. NORMAL OPERATING RANGES
+- Signal Strength: -60 dBm to -85 dBm (nominal: -75 dBm)
+- Packet Loss: 0% - 2% (nominal: <0.5%)
+- Communication Latency: 100ms - 400ms (nominal: 250ms)
+
+3. DEGRADATION INDICATORS
+a) Signal strength below -90 dBm
+b) Packet loss exceeding 5%
+c) Latency exceeding 800ms
+d) Frequent link drops
+
+4. DIAGNOSTIC PROCEDURE
+Step 1: Verify antenna pointing accuracy
+Step 2: Check ground station availability
+Step 3: Test secondary communication channel
+Step 4: Review interference patterns
+Step 5: Assess transponder health
+
+5. RECOVERY ACTIONS (HUMAN APPROVAL REQUIRED)
+Action 1: Switch to backup transponder
+Action 2: Increase transmission power
+Action 3: Adjust antenna orientation
+Action 4: Contact alternate ground station
+
+WARNING: All communication actions require human operator approval.

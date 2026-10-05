@@ -1,0 +1,30 @@
+[SIMULATED HISTORICAL INCIDENT LOG — FOR DEMONSTRATION PURPOSES ONLY]
+
+INCIDENT: HIST-0021
+TITLE: Battery Cell Degradation Event — Mission Day 127
+SEVERITY: HIGH
+STATUS: RESOLVED
+SUBSYSTEM: Power
+
+SUMMARY:
+On Mission Day 127, progressive battery voltage decline was detected over a 4-hour period. Root cause analysis identified degradation in battery cell group B, resulting in reduced capacity.
+
+OBSERVED PARAMETERS:
+- Battery voltage decreased from 28.1V to 25.3V over 4 hours
+- Battery current increased from 5.1A to 7.8A compensating for voltage loss
+- Battery temperature elevated to 38°C during peak charging
+- Solar charging input remained normal at 2.0 kW
+
+ROOT CAUSE:
+Battery cell group B showed increased internal resistance consistent with aging/degradation. Cycling count had exceeded 1,500 cycles with operating in higher temperature ranges.
+
+RESOLUTION:
+- Battery conditioning cycle performed
+- Load shedding of non-essential payload
+- Enhanced monitoring enabled
+- Capacity reduced from 100% to 82% of original
+
+LESSONS LEARNED:
+1. Battery temperature monitoring should trigger earlier alerts
+2. Current increase is an early indicator of voltage degradation
+3. Historical trending analysis recommended for proactive detection

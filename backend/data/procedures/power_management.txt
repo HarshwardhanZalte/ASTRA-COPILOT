@@ -1,0 +1,16 @@
+[SIMULATED MISSION DOCUMENT — FOR DEMONSTRATION PURPOSES ONLY]
+
+DOCUMENT: PWR-PROC-001
+TITLE: Power Management and Battery Recovery Procedure
+SUBSYSTEM: Power
+VERSION: 3.2
+CLASSIFICATION: MISSION OPERATIONS
+
+1. OVERVIEW
+This procedure covers power subsystem monitoring, battery health assessment, and recovery actions for SAT-01.
+
+2. NORMAL OPERATING RANGES
+- Battery Voltage: 27.5V - 29.0V (nominal: 28.0V)
+- Battery Current: 4.0A - 6.5A (nominal: 5.0A)
+- Battery Temperature: 15°C - 35°C (nominal: 25°C)
+-

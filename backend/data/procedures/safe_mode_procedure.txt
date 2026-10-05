@@ -1,0 +1,30 @@
+[SIMULATED MISSION DOCUMENT — FOR DEMONSTRATION PURPOSES ONLY]
+
+DOCUMENT: SAF-PROC-001
+TITLE: Safe Mode Entry Procedure
+SUBSYSTEM: All
+VERSION: 4.0
+
+1. OVERVIEW
+Safe mode is a protected operating state minimizing power consumption and risk to spacecraft.
+
+2. SAFE MODE TRIGGERS
+- Battery voltage < 22V
+- CPU temperature > 80°C
+- Communication loss > 30 minutes
+- Multiple simultaneous subsystem failures
+
+3. SAFE MODE ACTIONS
+Step 1: Disable all non-essential payloads
+Step 2: Set spacecraft to minimum power mode
+Step 3: Enable beacon-only communication
+Step 4: Orient solar panels for maximum power generation
+Step 5: Monitor critical parameters only
+
+4. EXIT CRITERIA
+- Battery voltage restored > 26V for 30 minutes
+- All critical temperatures within limits
+- Communication link re-established
+- Ground team confirmation received
+
+WARNING: Safe mode entry and exit require explicit human operator approval.

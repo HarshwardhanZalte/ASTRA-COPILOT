@@ -1,0 +1,27 @@
+[SIMULATED HISTORICAL INCIDENT LOG — FOR DEMONSTRATION PURPOSES ONLY]
+
+INCIDENT: HIST-0015
+TITLE: S-Band Link Degradation — Mission Day 74
+SEVERITY: MEDIUM
+STATUS: RESOLVED
+SUBSYSTEM: Communication
+
+SUMMARY:
+Mission Day 74: Gradual S-band link degradation observed during southern hemisphere passes.
+
+OBSERVED PARAMETERS:
+- Signal strength degraded from -74 dBm to -91 dBm
+- Packet loss increased from 0.3% to 8.7%
+- Communication latency 620ms (nominal: 250ms)
+
+ROOT CAUSE:
+Rain fade at primary ground station combined with non-optimal antenna pointing due to attitude control drift.
+
+RESOLUTION:
+- Switched to secondary ground station
+- Re-established link at -78 dBm
+- Attitude correction maneuver scheduled
+
+LESSONS LEARNED:
+1. Multiple ground stations required for continuous coverage
+2. Attitude drift can cause gradual signal degradation
