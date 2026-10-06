@@ -1,5 +1,5 @@
 ﻿from fastapi import APIRouter
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from app.services.telemetry_service import (
     start_simulation, pause_simulation, reset_simulation,
     inject_fault, update_noise_config, sim_state
@@ -19,7 +19,7 @@ class ConditionsRequest(BaseModel):
     missing_enabled: bool = False
     missing_rate: float = 0.05
     delay_enabled: bool = False
-    delay_seconds: float = 5.0
+    delay_seconds: float = Field(default=5.0, ge=0.0, le=120.0)
     outlier_enabled: bool = False
     outlier_rate: float = 0.01
 
@@ -95,7 +95,13 @@ async def get_status():
             "noise_enabled": sim_state.noise_config.noise_enabled,
             "missing_enabled": sim_state.noise_config.missing_enabled,
             "delay_enabled": sim_state.noise_config.delay_enabled,
+            "delay_seconds": sim_state.noise_config.delay_seconds,
             "outlier_enabled": sim_state.noise_config.outlier_enabled,
+        },
+        "delivery": {
+            "pending_packets": sim_state.delivery_buffer.pending_count,
+            "delayed_packets": sim_state.delivery_buffer.delayed_count,
+            "out_of_order_packets": sim_state.delivery_buffer.out_of_order_count,
         },
         "telemetry_count": len(sim_state.telemetry_history),
         "client_count": len(sim_state.websocket_clients),

@@ -5,6 +5,7 @@ import StatusBadge from '../components/StatusBadge'
 
 export default function ModelStatusPage() {
   const [status, setStatus] = useState(null)
+  const evaluation = status?.evaluation
 
   useEffect(() => {
     const load = async () => {
@@ -42,12 +43,42 @@ export default function ModelStatusPage() {
               <span className="font-mono text-[#E5E7EB]">0.05</span>
             </div>
             <div className="flex justify-between text-xs">
-              <span className="text-[#64748B]">Training Samples</span>
-              <span className="font-mono text-[#E5E7EB]">1,000 synthetic normal</span>
+              <span className="text-[#64748B]">Evaluation Training Set</span>
+              <span className="font-mono text-[#E5E7EB]">{evaluation?.training_samples?.toLocaleString() ?? '—'} synthetic nominal</span>
             </div>
             <div className="flex justify-between text-xs">
               <span className="text-[#64748B]">Features</span>
               <span className="font-mono text-[#E5E7EB]">13 telemetry channels</span>
+            </div>
+          </div>
+        </Panel>
+
+        <Panel title="SYNTHETIC HOLDOUT EVALUATION">
+          <div className="p-4 space-y-3">
+            {[
+              ['Precision', evaluation?.precision],
+              ['Recall', evaluation?.recall],
+              ['F1 score', evaluation?.f1],
+              ['False-alert rate', evaluation?.false_alert_rate],
+            ].map(([label, value]) => (
+              <div key={label} className="flex justify-between text-xs">
+                <span className="text-[#64748B]">{label}</span>
+                <span className="font-mono text-[#E5E7EB]">
+                  {value == null ? '—' : `${(value * 100).toFixed(1)}%`}
+                </span>
+              </div>
+            ))}
+            <div className="text-[10px] text-[#64748B]">
+              Held-out set: {evaluation?.test_samples ?? '—'} samples · confusion matrix
+              (actual rows: nominal/fault; predicted columns: nominal/fault)
+            </div>
+            {evaluation?.confusion_matrix && (
+              <div className="font-mono text-[10px] text-[#94A3B8]">
+                [[{evaluation.confusion_matrix.matrix[0].join(', ')}], [{evaluation.confusion_matrix.matrix[1].join(', ')}]]
+              </div>
+            )}
+            <div className="text-[10px] text-[#F59E0B]">
+              {evaluation?.warning || 'Evaluation pending.'}
             </div>
           </div>
         </Panel>

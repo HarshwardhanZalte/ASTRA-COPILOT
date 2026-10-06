@@ -61,10 +61,11 @@ When the simulator is running, the backend repeats this sequence approximately o
 1. Generate a timestamped SAT-01 reading, including small random variations and simple orbital effects.
 2. Apply the selected fault, if any. Fault effects progress with elapsed time and severity.
 3. Apply configured noise, outliers, and/or missing-value simulation.
-4. Calculate per-field status and run anomaly analysis.
-5. Save the current reading in process memory and append it to a rolling history.
-6. Broadcast the reading to connected browser clients over a WebSocket.
-7. When the detector transitions into an anomalous state, create an incident and timeline entries in process memory.
+4. Queue each reading for delivery. With **Delayed Data** enabled, packets arrive after the configured delay; every fifth packet takes twice as long to demonstrate out-of-order arrival.
+5. On arrival, attach event-time, receive-time, latency, sequence, and delivery-order metadata; calculate per-field status and run anomaly analysis.
+6. Append every delivered packet to the rolling history, but only let a packet at the newest event-time update the current/latest reading.
+7. Broadcast arrivals to connected browser clients over a WebSocket. The client orders charts by event-time while showing packet delivery quality.
+8. When the detector transitions into an anomalous state, create an incident and timeline entries in process memory.
 
 On startup, the backend also seeds an in-memory demo history of 240 telemetry samples and four representative incidents (battery degradation, thermal overload, communication degradation, and sensor drift). This pre-populates the mission charts, incidents list, timelines, event log, and evidence panels before a user starts the live simulator. The UI marks this as **DEMO HISTORY**. Starting the simulator appends live readings to that history. The seed data is recreated on each backend restart and is not persisted.
 
@@ -72,13 +73,13 @@ On startup, the backend also seeds an in-memory demo history of 240 telemetry sa
 
 The detector is an Isolation Forest with a `StandardScaler`. On startup, it trains against 1,000 generated nominal samples; it does not load a persisted model. It uses 13 telemetry channels. Its anomaly score is calibrated against the training-score percentile and combined with deterministic subsystem scores, which compare telemetry values to nominal means and standard deviations. The subsystem with the highest score is mapped to a probable root cause.
 
-The reported score, severity, and confidence are application outputs, not certified mission probabilities. This project currently does not calculate or present a validated precision, recall, F1 score, false-positive rate, or fault-classification confusion matrix.
+The reported score, severity, and confidence are application outputs, not certified mission probabilities. The Model Status page and `GET /api/system/status` include a reproducible synthetic holdout evaluation: a separately trained Isolation Forest is tested on 100 nominal readings and 100 readings for each of four simulated fault types, with 1.5% multiplicative noise and 4% missing-value injection. The report includes precision, recall, F1, false-alert rate, a binary nominal/fault confusion matrix, and per-fault detection recall. The false-alert rate is `false positives / nominal test readings`. Fixed random seeds make the test set reproducible. These are measured results on generated data only, not on NASA/ESA or operational telemetry, and are not a flight qualification or a measured root-cause classification accuracy.
 
 ### Evidence and Copilot
 
-Simulated procedure, incident, and mission-log text files are loaded from `backend/data/`. The in-process retrieval code attempts to embed document text with Sentence Transformers and ranks documents by cosine similarity. If embeddings are unavailable, it falls back to keyword search.
+Simulated procedure, incident, and mission-log text files are loaded from `backend/data/`, split into overlapping chunks, and indexed with source document IDs and chunk numbers. Retrieval combines embedding similarity and lexical overlap; if embeddings are unavailable, it falls back to keyword search. The Copilot applies a documented evidence gate (`similarity_score >= 0.12` plus at least half of the question's topic terms found in the retrieved evidence). Queries that fail the gate return an explicit insufficient-evidence response with no claims or citations.
 
-With no `GEMINI_API_KEY`, the Copilot uses deterministic demo response templates and reports `DEMO` mode. If a Gemini API key is configured, it sends retrieved documents and telemetry evidence to the configured Gemini model; a request failure falls back to demo responses. The Copilot is for operator support only, not command execution.
+Every displayed claim cites one or more IDs that link to a retrieved chunk, telemetry evidence item, or incident record. Procedure recommendations in demo mode quote actual procedure steps and remain subject to human approval. With no `GEMINI_API_KEY`, evidence-linked output is assembled from the retrieved evidence and reports `DEMO` mode. If a Gemini API key is configured, Gemini receives the evidence and must return structured claims with citation IDs; claims with missing or unknown citation IDs are discarded. A Gemini request failure falls back to the same evidence-linked demo behavior. The Copilot is for operator support only, not command execution.
 
 ## Navigation and pages
 
@@ -91,7 +92,7 @@ The left sidebar contains these pages:
 | **Overview** | `/mission` | Mission snapshot for SAT-01: overall health estimate, active incident count, latest anomaly score and root cause, subsystem scores, incident links, and compact power, thermal, computing, and communications charts. Live charts update when the simulator is running. |
 | **Telemetry** | `/telemetry` | Detailed table for all 13 telemetry channels, with subsystem, latest value, unit, and status. Includes a grid of live telemetry plots and a WebSocket connection indicator. |
 | **Incidents** | `/incidents` | Lists in-memory incidents, their severity and status, probable root cause, detection time, and a link to inspect each incident. An incident detail page is available at `/incidents/:id`. |
-| **Copilot** | `/copilot` | Operator chat panel with suggested questions. It uses the newest incident when one exists; otherwise, it can answer without an incident context. Responses display summary, facts, root cause, recommendations, uncertainty, and sources when supplied by the backend. |
+| **Copilot** | `/copilot` | Operator chat panel with suggested questions. It uses the newest incident when one exists; otherwise, it searches mission documents. Each displayed claim has citation IDs that open to their supporting excerpts. It refuses when relevant evidence is insufficient. |
 
 ### Simulation
 
@@ -104,7 +105,7 @@ The left sidebar contains these pages:
 
 | Tab | Route | What it does |
 | --- | --- | --- |
-| **Model Status** | `/model-status` | Displays detector configuration, training-sample and feature counts, Copilot mode, loaded document count, simulator status, and a database-status panel. Some displayed values are configuration or placeholder values; see [Current limitations](#current-limitations). |
+| **Model Status** | `/model-status` | Displays detector configuration, measured synthetic holdout metrics, Copilot mode, loaded document count, simulator status, and a database-status panel. |
 | **Settings** | `/settings` | Shows the environment variables used for backend configuration. Settings are changed in the backend `.env` file, not through editable controls in this page. |
 
 ### Simulator controls in detail
@@ -116,7 +117,7 @@ The left sidebar contains these pages:
 - **Noise:** Adds Gaussian variation to numeric readings.
 - **Missing Values:** Randomly replaces numeric readings with missing values. The ML preprocessor imputes missing channels to nominal means before inference.
 - **Outliers:** Occasionally adds a large perturbation to a numeric reading.
-- **Delayed Data:** The UI and API accept this option, but delayed timestamps are not currently applied to generated telemetry.
+- **Delayed Data:** Delays delivery (not the telemetry's event timestamp) by 5 seconds by default. Every fifth packet is delayed twice as long, creating reproducible out-of-order arrivals. The rolling event-time history is sorted for API/chart consumers, old packets are tagged `OUT_OF_ORDER`, and the latest/current reading is not overwritten by an older packet. The simulator status reports pending, delayed, and out-of-order packet counts. API delay values are limited to 0–120 seconds.
 
 ## Requirements
 
@@ -216,7 +217,9 @@ npm run dev
 6. Open **Mission → Overview** to see health, subsystem scores, charts, and any generated active incident.
 7. Open **Mission → Incidents**, then choose **Inspect** on an incident to view its evidence, timeline, recommendations, and Copilot panel.
 8. Ask the Copilot questions such as “Why did this anomaly occur?”, “What evidence supports the diagnosis?”, or “What should the operator investigate next?”
-9. To try a different fault, return to the simulator, clear the current fault, select another fault, and inject it.
+9. Ask “What is the capital of France?” to confirm the Copilot refuses questions unsupported by the incident or mission documents.
+10. In the simulator, enable **Noise**, **Missing Values**, and **Delayed Data**. Watch packet counts and the event-time/receive-time quality indicator; chart history remains event-time ordered despite out-of-order arrivals.
+11. To try a different fault, return to the simulator, clear the current fault, select another fault, and inject it.
 
 All displayed recommendations are proposed investigation steps only. They do not execute spacecraft actions.
 
@@ -242,13 +245,13 @@ The FastAPI application exposes these routes:
 | Method | Path | Description |
 | --- | --- | --- |
 | `GET` | `/api/health` | Backend health and simulation-running flag. |
-| `GET` | `/api/system/status` | Detector, RAG, and simulator status summary. |
+| `GET` | `/api/system/status` | Detector, RAG, simulator, and cached synthetic holdout evaluation summary. |
 | `GET` | `/api/telemetry/latest` | Latest in-memory reading. |
 | `GET` | `/api/telemetry/history?limit=100` | Recent in-memory readings. |
 | `POST` | `/api/simulator/start` | Start the telemetry loop. |
 | `POST` | `/api/simulator/pause` | Pause the telemetry loop. |
 | `POST` | `/api/simulator/reset` | Reset telemetry history and event log. |
-| `GET` | `/api/simulator/status` | Simulator controls/status and connection counts. |
+| `GET` | `/api/simulator/status` | Simulator controls/status, pending/delayed/out-of-order packet counts, and connection counts. |
 | `GET` | `/api/simulator/events` | Recent simulator events. |
 | `POST` | `/api/simulator/fault` | Inject a fault with JSON `{"fault_type":"battery_degradation","severity":"HIGH"}`. |
 | `POST` | `/api/simulator/fault/battery` | Inject battery degradation. |
@@ -256,7 +259,7 @@ The FastAPI application exposes these routes:
 | `POST` | `/api/simulator/fault/communication` | Inject communication failure. |
 | `POST` | `/api/simulator/fault/sensor-drift` | Inject sensor drift. |
 | `POST` | `/api/simulator/clear-fault` | Clear the active fault. |
-| `POST` | `/api/simulator/conditions` | Configure noise, missing values, delay flag, and outliers. |
+| `POST` | `/api/simulator/conditions` | Configure noise, missing values, delay, and outliers. `delay_seconds` accepts 0–120; with delay enabled, omitted values default to 5 seconds. |
 | `GET` | `/api/anomalies` | Find anomalous readings in recent telemetry history. |
 | `GET` | `/api/anomalies/latest` | Anomaly status for the latest reading. |
 | `GET` | `/api/incidents` | List current in-memory incidents. |
@@ -324,17 +327,17 @@ Set-Location frontend
 npm run build
 ```
 
-The current backend test suite is small and does not yet cover all fault scenarios, APIs, retrieval behavior, or ML performance. A successful frontend build verifies bundle compilation, not end-to-end runtime behavior.
+The backend regression suite covers detector behavior, synthetic metric calculations, delayed/out-of-order packet delivery, evidence-linked Copilot responses, and demo seeding. A successful frontend build verifies bundle compilation, not end-to-end runtime behavior.
 
 ## Current limitations
 
 This repository is a prototype; not every item in the original build specification is complete:
 
 - **Persistence:** Simulator telemetry, incidents, and incident events are stored in process memory. Restarting the backend loses them. SQLAlchemy models and a database connection/table-initialization scaffold exist, but the API services do not persist or query these records from Neon. The system-status response currently reports database connectivity as `false`.
-- **Vector storage:** Retrieval currently keeps documents and embeddings in process memory. The `documents` schema includes a pgvector-compatible column, but retrieval is not wired to PostgreSQL/pgvector, and document chunking is not implemented.
-- **Data delay:** The delayed-data control is present in the API/UI configuration, but it does not currently delay delivery or alter timestamps.
-- **Demo Copilot grounding:** The DEMO response templates include fixed sample claims and recommendations. Retrieved documents and telemetry evidence are attached in parts of the response flow, but demo text is not a fully generated, per-incident factual analysis. Treat it as a scripted demonstration.
-- **Model metrics:** The model page displays training configuration, not measured validation metrics. There is no implemented train/test evaluation pipeline yet.
+- **Vector storage:** Retrieval chunks documents with source provenance but keeps documents and embeddings in process memory. The `documents` schema includes a pgvector-compatible column, but retrieval is not wired to PostgreSQL/pgvector.
+- **Synthetic evaluation:** Precision, recall, F1, false-alert rate, and confusion counts are measured against generated holdout cases only. They do not establish performance on real spacecraft telemetry, and no root-cause classification accuracy is reported.
+- **Copilot grounding:** Citation IDs link displayed claims to retrieved evidence and invalid Gemini citation IDs are discarded. This is not an automated entailment verifier; operators must open the cited excerpt and assess whether it supports the claim. All content is simulated and all recommendations need human review.
+- **Data delay:** Delay and packet reordering are simulated in one backend process; they do not model a real communications network, packet loss, or cross-process delivery.
 - **Scenarios page:** This is currently a placeholder; use the Anomaly Simulator page for fault selection and injection.
 - **Settings page:** This is read-only guidance; configuration is changed in `backend/.env`.
 - **Incident lifecycle:** Incident generation, numbering, history, and reset behavior are in-memory prototype behavior, not a production incident-management workflow.

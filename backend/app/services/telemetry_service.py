@@ -7,6 +7,7 @@ import threading
 from app.simulator.generator import generate_base_telemetry, get_all_statuses
 from app.simulator.faults import FaultType, FaultSeverity, apply_fault
 from app.simulator.noise import NoiseConfig, process_telemetry_with_noise
+from app.simulator.delivery import TelemetryDeliveryBuffer
 from app.ml.anomaly_detector import get_detector
 from app.services.incident_service import (
     create_incident_from_anomaly,
@@ -33,6 +34,7 @@ class SimulationState:
         self._lock = threading.Lock()
         self.tick_interval = 1.0
         self._task: Optional[asyncio.Task] = None
+        self.delivery_buffer = TelemetryDeliveryBuffer()
 
     def add_event(self, message: str, event_type: str = "INFO"):
         self.event_log.append({
@@ -55,6 +57,11 @@ async def simulation_loop():
     detector = get_detector()
     incident_counter = [get_latest_incident_counter()]
     last_anomaly_reported = [False]
+    event_loop = asyncio.get_running_loop()
+    if sim_state.current_telemetry:
+        timestamp = sim_state.current_telemetry.get("timestamp")
+        if timestamp:
+            sim_state.delivery_buffer.latest_event_time = datetime.fromisoformat(timestamp)
 
     while sim_state.running:
         try:
@@ -77,24 +84,40 @@ async def simulation_loop():
             telemetry["fault_active"] = fault_active
             telemetry["scenario"] = sim_state.scenario
 
-            ml_result = detector.predict(telemetry)
-            telemetry["ml"] = ml_result
+            config = sim_state.noise_config
+            delay = config.delay_seconds if config.delay_enabled else 0.0
+            sim_state.delivery_buffer.enqueue(telemetry, delay, event_loop.time())
 
-            if ml_result["is_anomaly"] and not last_anomaly_reported[0]:
-                last_anomaly_reported[0] = True
-                sim_state.add_event(f"ML anomaly detected (score: {ml_result['anomaly_score']:.2f})", "ANOMALY")
-                sim_state.add_event(f"{ml_result['root_cause']} identified", "ANALYSIS")
-                incident_counter[0] += 1
-                create_incident_from_anomaly(ml_result, telemetry, incident_counter[0])
-                sim_state.add_event(f"Incident INC-{incident_counter[0]:04d} created", "INCIDENT")
-            elif not ml_result["is_anomaly"]:
-                last_anomaly_reported[0] = False
+            for arrived in sim_state.delivery_buffer.pop_ready(event_loop.time()):
+                event_time = datetime.fromisoformat(arrived["timestamp"])
 
-            with sim_state._lock:
-                sim_state.current_telemetry = telemetry
-                sim_state.telemetry_history.append(telemetry)
+                ml_result = detector.predict(arrived)
+                arrived["ml"] = ml_result
 
-            await broadcast_telemetry(telemetry)
+                if ml_result["is_anomaly"] and not last_anomaly_reported[0]:
+                    last_anomaly_reported[0] = True
+                    sim_state.add_event(
+                        f"ML anomaly detected (score: {ml_result['anomaly_score']:.2f})",
+                        "ANOMALY",
+                    )
+                    sim_state.add_event(f"{ml_result['root_cause']} identified", "ANALYSIS")
+                    incident_counter[0] += 1
+                    create_incident_from_anomaly(ml_result, arrived, incident_counter[0])
+                    sim_state.add_event(
+                        f"Incident INC-{incident_counter[0]:04d} created", "INCIDENT"
+                    )
+                elif not ml_result["is_anomaly"]:
+                    last_anomaly_reported[0] = False
+
+                with sim_state._lock:
+                    sim_state.telemetry_history.append(arrived)
+                    if (
+                        sim_state.delivery_buffer.latest_event_time == event_time
+                        or sim_state.current_telemetry is None
+                    ):
+                        sim_state.current_telemetry = arrived
+
+                await broadcast_telemetry(arrived)
 
         except Exception as e:
             logger.error(f"Simulation loop error: {e}")
@@ -143,6 +166,7 @@ async def reset_simulation():
     sim_state.fault_injected_at = None
     sim_state.scenario = "normal"
     sim_state.telemetry_history.clear()
+    sim_state.delivery_buffer.clear()
     sim_state.event_log.clear()
     sim_state.current_telemetry = None
     from app.services.incident_service import clear_incidents

@@ -1,4 +1,5 @@
 import logging
+import re
 import uuid
 from typing import List, Optional, Dict
 from pathlib import Path
@@ -8,10 +9,47 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 _docs: List[Dict] = []
-_embeddings: List[Optional[List[float]]] = []
+_chunks: List[Dict] = []
+_chunk_embeddings: List[Optional[List[float]]] = []
+
+CHUNK_SIZE = 700
+CHUNK_OVERLAP = 100
+STOP_WORDS = {
+    "a", "an", "and", "are", "be", "by", "can", "did", "do", "for", "from",
+    "how", "i", "in", "is", "it", "me", "of", "on", "or", "our", "should",
+    "the", "this", "to", "was", "we", "what", "when", "which", "with", "you",
+}
+
+
+def _terms(text: str) -> set[str]:
+    return {
+        token
+        for token in re.findall(r"[a-z0-9]+", text.lower())
+        if len(token) > 2 and token not in STOP_WORDS
+    }
+
+
+def _split_into_chunks(content: str) -> list[str]:
+    paragraphs = [part.strip() for part in re.split(r"\n\s*\n", content) if part.strip()]
+    chunks: list[str] = []
+    current = ""
+    for paragraph in paragraphs:
+        while len(paragraph) > CHUNK_SIZE:
+            piece, paragraph = paragraph[:CHUNK_SIZE], paragraph[CHUNK_SIZE:]
+            if current:
+                chunks.append(current)
+                current = ""
+            chunks.append(piece.strip())
+        if current and len(current) + len(paragraph) + 2 > CHUNK_SIZE:
+            chunks.append(current)
+            current = current[-CHUNK_OVERLAP:] + "\n" + paragraph
+        else:
+            current = f"{current}\n{paragraph}".strip()
+    if current:
+        chunks.append(current)
+    return chunks or [content]
 
 def add_document(doc_id: str, title: str, content: str, doc_type: str, subsystem: Optional[str] = None):
-    embedding = embed_text(content)
     doc = {
         "id": str(uuid.uuid4()),
         "doc_id": doc_id,
@@ -21,11 +59,24 @@ def add_document(doc_id: str, title: str, content: str, doc_type: str, subsystem
         "subsystem": subsystem,
     }
     _docs.append(doc)
-    _embeddings.append(embedding)
+    for index, chunk_text in enumerate(_split_into_chunks(content), start=1):
+        chunk = {
+            "id": f"{doc_id}#chunk-{index:03d}",
+            "citation_id": "",
+            "doc_id": doc_id,
+            "source_id": doc_id,
+            "title": title,
+            "content": chunk_text,
+            "doc_type": doc_type,
+            "subsystem": subsystem,
+            "chunk_index": index,
+        }
+        _chunks.append(chunk)
+        _chunk_embeddings.append(embed_text(chunk_text))
     return doc
 
 def search_similar(query: str, top_k: int = 4) -> List[Dict]:
-    if not _docs:
+    if not _chunks:
         return []
 
     query_embedding = embed_text(query)
@@ -33,36 +84,36 @@ def search_similar(query: str, top_k: int = 4) -> List[Dict]:
         return keyword_search(query, top_k)
 
     q = np.array(query_embedding)
-    scores = []
-    for emb in _embeddings:
+    query_terms = _terms(query)
+    scored = []
+    for index, emb in enumerate(_chunk_embeddings):
         if emb is None:
-            scores.append(0.0)
+            cosine = 0.0
         else:
             e = np.array(emb)
-            sim = float(np.dot(q, e) / (np.linalg.norm(q) * np.linalg.norm(e) + 1e-8))
-            scores.append(sim)
-
-    top_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:top_k]
-    results = []
-    for i in top_indices:
-        doc = dict(_docs[i])
-        doc["similarity_score"] = round(scores[i], 3)
-        results.append(doc)
-
-    return results
+            cosine = max(
+                0.0,
+                float(np.dot(q, e) / (np.linalg.norm(q) * np.linalg.norm(e) + 1e-8)),
+            )
+        chunk_terms = _terms(_chunks[index]["title"] + " " + _chunks[index]["content"])
+        lexical = len(query_terms & chunk_terms) / len(query_terms) if query_terms else 0.0
+        result = dict(_chunks[index])
+        result["similarity_score"] = round(0.7 * cosine + 0.3 * lexical, 3)
+        result["lexical_score"] = round(lexical, 3)
+        scored.append(result)
+    return sorted(scored, key=lambda item: item["similarity_score"], reverse=True)[:top_k]
 
 def keyword_search(query: str, top_k: int = 4) -> List[Dict]:
-    query_lower = query.lower()
+    query_terms = _terms(query)
     scored = []
-    for doc in _docs:
-        content_lower = doc["content"].lower()
-        title_lower = doc["title"].lower()
-        words = query_lower.split()
-        score = sum(1 for w in words if w in content_lower or w in title_lower)
+    for chunk in _chunks:
+        chunk_terms = _terms(chunk["title"] + " " + chunk["content"])
+        score = len(query_terms & chunk_terms) / len(query_terms) if query_terms else 0.0
         if score > 0:
-            d = dict(doc)
-            d["similarity_score"] = score / len(words)
-            scored.append(d)
+            result = dict(chunk)
+            result["similarity_score"] = round(score, 3)
+            result["lexical_score"] = round(score, 3)
+            scored.append(result)
     scored.sort(key=lambda x: x["similarity_score"], reverse=True)
     return scored[:top_k]
 

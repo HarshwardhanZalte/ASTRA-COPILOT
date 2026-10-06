@@ -20,13 +20,9 @@ class FakeGeminiAsyncClient:
         self.request = request
         return SimpleNamespace(
             text=(
-                '{"summary":"Battery voltage is low.",'
-                '"observed_facts":["Voltage below nominal."],'
-                '"root_cause":"Battery degradation",'
-                '"root_cause_confidence":0.9,'
-                '"recommendations":["Verify the secondary sensor."],'
-                '"uncertainty":"Sensor drift is not excluded.",'
-                '"sources":["power_management"]}'
+                '{"claims":[{"kind":"recommendation",'
+                '"text":"Verify battery voltage using an independent sensor.",'
+                '"citation_ids":["C1"]}]}'
             )
         )
 
@@ -43,7 +39,20 @@ class GeminiCopilotTests(unittest.IsolatedAsyncioTestCase):
         }
         docs = [{
             "doc_id": "power_management",
+            "source_id": "power_management",
+            "citation_id": "C1",
+            "doc_type": "procedure",
+            "title": "Power Management Procedure",
+            "similarity_score": 0.8,
             "content": "Verify battery voltage using an independent sensor.",
+        }]
+        citations = [{
+            "id": "C1",
+            "source_id": "power_management",
+            "source_type": "procedure",
+            "title": "Power Management Procedure",
+            "excerpt": docs[0]["content"],
+            "relevance_score": 0.8,
         }]
 
         with (
@@ -55,6 +64,7 @@ class GeminiCopilotTests(unittest.IsolatedAsyncioTestCase):
                 incident,
                 docs,
                 [],
+                citations,
                 None,
             )
 
@@ -64,10 +74,14 @@ class GeminiCopilotTests(unittest.IsolatedAsyncioTestCase):
             "test-gemini-key",
         )
         self.assertEqual(async_client.request["model"], "gemini-2.5-flash")
-        self.assertEqual(async_client.request["contents"], "What should I investigate?")
+        self.assertEqual(
+            async_client.request["contents"],
+            '{"question": "What should I investigate?", "conversation_history": []}',
+        )
         self.assertEqual(result["mode"], "GEMINI")
         self.assertEqual(result["root_cause"], "Battery degradation")
         self.assertEqual(result["sources"], ["power_management"])
+        self.assertEqual(result["grounded_claims"][0]["citation_ids"], ["C1"])
 
 
 if __name__ == "__main__":

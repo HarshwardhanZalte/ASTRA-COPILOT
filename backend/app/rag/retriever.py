@@ -14,7 +14,13 @@ def retrieve_for_incident(incident: dict, top_k: int = 4) -> List[Dict]:
 def retrieve_for_question(question: str, incident_context: Optional[dict] = None, top_k: int = 4) -> List[Dict]:
     if incident_context:
         root_cause = incident_context.get("root_cause", "")
-        query = f"{question} {root_cause}"
+        subsystem_scores = incident_context.get("subsystem_scores", {})
+        subsystem = (
+            max(subsystem_scores, key=subsystem_scores.get)
+            if subsystem_scores
+            else ""
+        )
+        query = f"{question} {root_cause} {subsystem}"
     else:
         query = question
     return search_similar(query, top_k=top_k)

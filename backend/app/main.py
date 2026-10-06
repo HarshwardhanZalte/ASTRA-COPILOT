@@ -6,6 +6,7 @@ from app.config import settings
 from app.database import init_db, create_tables
 from app.rag.vector_store import load_all_documents
 from app.ml.anomaly_detector import get_detector
+from app.ml.evaluation import evaluate_detector
 
 logging.basicConfig(
     level=logging.INFO,
@@ -96,12 +97,18 @@ async def system_status():
             "scenario": sim_state.scenario,
             "fault_active": sim_state.fault_type.value != "none",
             "telemetry_count": len(sim_state.telemetry_history),
-            "demo_data_loaded": sim_state.demo_data_loaded
+            "demo_data_loaded": sim_state.demo_data_loaded,
+            "delivery": {
+                "pending_packets": sim_state.delivery_buffer.pending_count,
+                "delayed_packets": sim_state.delivery_buffer.delayed_count,
+                "out_of_order_packets": sim_state.delivery_buffer.out_of_order_count,
+            },
         },
         "ml": {
             "detector_trained": _detector is not None and _detector.is_trained,
             "model_type": "Isolation Forest"
         },
+        "evaluation": evaluate_detector(),
         "rag": {
             "documents_loaded": len(docs),
             "copilot_mode": "GEMINI" if settings.GEMINI_API_KEY else "DEMO"

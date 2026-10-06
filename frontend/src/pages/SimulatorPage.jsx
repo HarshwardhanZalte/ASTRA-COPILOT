@@ -221,6 +221,21 @@ export default function SimulatorPage() {
                   </button>
                 </div>
               ))}
+              {conditions.delay_enabled && (
+                <div className="pt-2 border-t border-[#263142] text-[10px] font-mono text-[#94A3B8] space-y-1">
+                  <div>SIMULATED DELAY: {status?.noise_config?.delay_seconds ?? 5}s</div>
+                  <div>PENDING: {status?.delivery?.pending_packets ?? 0}</div>
+                  <div>DELAYED: {status?.delivery?.delayed_packets ?? 0}</div>
+                  <div>OUT OF ORDER: {status?.delivery?.out_of_order_packets ?? 0}</div>
+                  {telemetry?.delivery_quality && (
+                    <div className={telemetry.delivery_quality.status === 'OUT_OF_ORDER'
+                      ? 'text-[#F59E0B]' : 'text-[#22C55E]'}>
+                      LATEST EVENT: {telemetry.delivery_quality.status}
+                      {' · '}{telemetry.delivery_quality.latency_seconds}s
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </Panel>
 

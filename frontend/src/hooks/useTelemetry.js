@@ -25,10 +25,16 @@ export function useTelemetry(maxHistory = 120) {
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data)
-        setTelemetry(data)
+        setTelemetry(previous => (
+          !previous || data.timestamp >= previous.timestamp ? data : previous
+        ))
         setHistory(prev => {
-          const next = [...prev, { ...data, _idx: prev.length }]
-          return next.slice(-maxHistory)
+          const next = [...prev, data]
+            .sort((left, right) => left.timestamp.localeCompare(right.timestamp))
+          return next.slice(-maxHistory).map((sample, index) => ({
+            ...sample,
+            _idx: index,
+          }))
         })
       } catch (e) {
         console.error('Telemetry parse error:', e)

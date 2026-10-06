@@ -13,7 +13,10 @@ async def get_latest_telemetry():
 @router.get("/history")
 async def get_telemetry_history(limit: int = 100):
     with sim_state._lock:
-        history = list(sim_state.telemetry_history)[-max(0, min(limit, 500)):]
+        history = sorted(
+            sim_state.telemetry_history,
+            key=lambda sample: sample.get("timestamp", ""),
+        )[-max(0, min(limit, 500)):]
     return {"status": "ok", "count": len(history), "data": history}
 
 @router.websocket("/ws")
