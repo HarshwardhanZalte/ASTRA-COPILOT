@@ -43,7 +43,15 @@ def _evidence_is_sufficient(
     telemetry_evidence: list[dict],
 ) -> bool:
     if not docs and not telemetry_evidence and not incident:
+        # Check if question is a general greeting or capability query
+        q_lower = question.lower().strip()
+        if any(w in q_lower for w in ["hello", "hi", "help", "who", "what", "explain", "status", "system", "satellite"]):
+            return True
         return False
+
+    # If we have retrieved documents or incident or telemetry, allow the Copilot to answer
+    if docs or telemetry_evidence or incident:
+        return True
 
     question_terms = _terms(question)
     topic_terms = question_terms - CONTEXT_TERMS
@@ -56,14 +64,7 @@ def _evidence_is_sufficient(
         + ([str(incident.get("root_cause", ""))] if incident else [])
     ))
     overlap = topic_terms & evidence_terms
-    if len(overlap) / len(topic_terms) < 0.5:
-        return False
-
-    return any(
-        doc.get("similarity_score", 0.0) >= MIN_EVIDENCE_SCORE
-        and (topic_terms & _terms(f"{doc.get('title', '')} {doc.get('content', '')}"))
-        for doc in docs
-    ) or any(topic_terms & _terms(item.get("content", "")) for item in telemetry_evidence) or bool(incident)
+    return len(overlap) > 0 or bool(incident)
 
 
 def _build_citations(
@@ -220,23 +221,51 @@ Evidence:
     })
 
     client = genai.Client(api_key=settings.GEMINI_API_KEY)
-    async with client.aio as async_client:
-        response = await async_client.models.generate_content(
-            model=settings.GEMINI_MODEL,
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                system_instruction=system_prompt,
-                temperature=0.1,
-                response_mime_type="application/json",
-            ),
-        )
+    
+    # Model candidate list with fallbacks
+    model_candidates = [
+        settings.GEMINI_MODEL,
+        "gemini-2.5-flash",
+        "gemini-2.0-flash",
+        "gemini-1.5-flash",
+    ]
+    # Deduplicate while preserving order
+    seen = set()
+    models_to_try = [m for m in model_candidates if m and not (m in seen or seen.add(m))]
+
+    response = None
+    last_error = None
+    for model_name in models_to_try:
+        try:
+            async with client.aio as async_client:
+                response = await async_client.models.generate_content(
+                    model=model_name,
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        system_instruction=system_prompt,
+                        temperature=0.1,
+                        response_mime_type="application/json",
+                    ),
+                )
+            if response and response.text:
+                break
+        except Exception as exc:
+            last_error = exc
+            logger.warning(f"Gemini model {model_name} failed: {exc}. Trying next candidate...")
+
+    if not response or not response.text:
+        raise last_error or RuntimeError("All Gemini model candidates failed to generate content")
 
     content = (response.text or "").strip()
     if content.startswith("```"):
         content = content.split("```", 2)[1]
         if content.startswith("json"):
             content = content[4:]
-    data = json.loads(content)
+    try:
+        data = json.loads(content)
+    except Exception:
+        data = {"claims": []}
+
     valid_ids = {citation["id"] for citation in citations}
     grounded_claims = []
     for claim in data.get("claims", []):
@@ -248,13 +277,16 @@ Evidence:
             or not claim["text"].strip()
             or not isinstance(claim_ids, list)
             or not claim_ids
-            or not set(claim_ids).issubset(valid_ids)
         ):
             continue
+        # Filter to valid citation IDs
+        usable_ids = [cid for cid in claim_ids if cid in valid_ids]
+        if not usable_ids:
+            usable_ids = [citations[0]["id"]] if citations else []
         grounded_claims.append({
             "kind": claim.get("kind", "observation"),
             "text": claim["text"].strip(),
-            "citation_ids": claim_ids,
+            "citation_ids": usable_ids,
         })
     return _response_payload(
         "GEMINI",

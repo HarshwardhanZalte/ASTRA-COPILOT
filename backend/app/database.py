@@ -21,7 +21,7 @@ def init_db():
             pool_pre_ping=True,
             pool_size=5,
             max_overflow=10,
-            connect_args={"sslmode": "require"} if "neon" in settings.DATABASE_URL else {}
+            connect_args={"sslmode": "require"} if ("neon" in settings.DATABASE_URL or "supabase" in settings.DATABASE_URL) else {}
         )
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
