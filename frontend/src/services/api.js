@@ -1,4 +1,19 @@
-const BASE_URL = '/api'
+export const BACKEND_URL = import.meta.env.VITE_API_URL || 'https://93dft45d-8000.inc1.devtunnels.ms'
+export const BASE_URL = `${BACKEND_URL.replace(/\/+$/, '')}/api`
+
+export const getWsUrl = () => {
+  try {
+    if (BACKEND_URL.startsWith('http://') || BACKEND_URL.startsWith('https://')) {
+      const url = new URL(BACKEND_URL)
+      const protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
+      return `${protocol}//${url.host}/ws/telemetry`
+    }
+  } catch (e) {
+    console.error('Invalid BACKEND_URL:', e)
+  }
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+  return `${protocol}//${window.location.host}/ws/telemetry`
+}
 
 export const api = {
   async get(path) {
@@ -16,6 +31,7 @@ export const api = {
     return res.json()
   }
 }
+
 
 // Simulator API
 export const simulatorApi = {

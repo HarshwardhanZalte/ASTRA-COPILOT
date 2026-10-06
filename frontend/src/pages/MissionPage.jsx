@@ -6,6 +6,7 @@ import Panel from '../components/Panel'
 import StatusBadge from '../components/StatusBadge'
 import TelemetryChart from '../components/TelemetryChart'
 import SatelliteVisualizer from '../components/SatelliteVisualizer'
+import TimeTravelScrubber from '../components/TimeTravelScrubber'
 import { useTelemetry } from '../hooks/useTelemetry'
 
 const SUBSYSTEM_METAS = [
@@ -59,9 +60,10 @@ function SubsystemCard({ meta, score }) {
 }
 
 export default function MissionPage() {
-  const { telemetry, history } = useTelemetry(120)
+  const { telemetry, history, faultInjectedAt } = useTelemetry(120)
   const [incidents, setIncidents] = useState([])
   const [sysStatus, setSysStatus] = useState(null)
+  const [selectedFrame, setSelectedFrame] = useState(null)
 
   useEffect(() => {
     const load = async () => {
@@ -79,7 +81,11 @@ export default function MissionPage() {
     return () => clearInterval(interval)
   }, [])
 
-  const ml = telemetry?.ml || {}
+  const activeReading = selectedFrame != null && history[selectedFrame]
+    ? history[selectedFrame]
+    : telemetry
+
+  const ml = activeReading?.ml || {}
   const subsystem_scores = ml.subsystem_scores || {}
   const maxSubsystemScore = Object.values(subsystem_scores).length > 0
     ? Math.max(...Object.values(subsystem_scores))
@@ -232,7 +238,7 @@ export default function MissionPage() {
       {/* 2D Satellite Schematic Heatmap Section */}
       <SatelliteVisualizer
         subsystemScores={subsystem_scores}
-        telemetry={telemetry}
+        telemetry={activeReading}
       />
 
       {/* Middle Row: Subsystems + Active Incidents List + Quick Power Chart */}
@@ -291,8 +297,22 @@ export default function MissionPage() {
         {/* Live Power Subsystem Monitors */}
         <Panel title="POWER SUBSYSTEM TELEMETRY" className="col-span-1">
           <div className="p-3 space-y-3">
-            <TelemetryChart data={history} field="battery_voltage" label="Battery Voltage (V)" height={110} />
-            <TelemetryChart data={history} field="battery_current" label="Battery Current (A)" height={110} />
+            <TelemetryChart
+              data={history}
+              field="battery_voltage"
+              label="Battery Voltage (V)"
+              height={110}
+              faultInjectedAt={faultInjectedAt}
+              selectedFrame={selectedFrame}
+            />
+            <TelemetryChart
+              data={history}
+              field="battery_current"
+              label="Battery Current (A)"
+              height={110}
+              faultInjectedAt={faultInjectedAt}
+              selectedFrame={selectedFrame}
+            />
           </div>
         </Panel>
       </div>
@@ -301,17 +321,53 @@ export default function MissionPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <Panel title="THERMAL SUBSYSTEM REAL-TIME MONITOR">
           <div className="p-3 grid grid-cols-2 gap-3">
-            <TelemetryChart data={history} field="cpu_temperature" label="CPU Temp (°C)" height={115} />
-            <TelemetryChart data={history} field="payload_temperature" label="Payload Temp (°C)" height={115} />
+            <TelemetryChart
+              data={history}
+              field="cpu_temperature"
+              label="CPU Temp (°C)"
+              height={115}
+              faultInjectedAt={faultInjectedAt}
+              selectedFrame={selectedFrame}
+            />
+            <TelemetryChart
+              data={history}
+              field="payload_temperature"
+              label="Payload Temp (°C)"
+              height={115}
+              faultInjectedAt={faultInjectedAt}
+              selectedFrame={selectedFrame}
+            />
           </div>
         </Panel>
         <Panel title="COMMUNICATION & RF TELEMETRY MONITOR">
           <div className="p-3 grid grid-cols-2 gap-3">
-            <TelemetryChart data={history} field="communication_signal" label="Signal (dBm)" height={115} />
-            <TelemetryChart data={history} field="packet_loss" label="Packet Loss (%)" height={115} />
+            <TelemetryChart
+              data={history}
+              field="communication_signal"
+              label="Signal (dBm)"
+              height={115}
+              faultInjectedAt={faultInjectedAt}
+              selectedFrame={selectedFrame}
+            />
+            <TelemetryChart
+              data={history}
+              field="packet_loss"
+              label="Packet Loss (%)"
+              height={115}
+              faultInjectedAt={faultInjectedAt}
+              selectedFrame={selectedFrame}
+            />
           </div>
         </Panel>
       </div>
+
+      {/* Time-Travel Replay Scrubber */}
+      <TimeTravelScrubber
+        history={history}
+        faultInjectedAt={faultInjectedAt}
+        onSelectFrame={setSelectedFrame}
+        selectedFrameIndex={selectedFrame}
+      />
     </div>
   )
 }

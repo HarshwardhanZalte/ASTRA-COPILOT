@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { telemetryApi } from '../services/api'
+import { telemetryApi, getWsUrl } from '../services/api'
 
 export function useTelemetry(maxHistory = 120) {
   const [telemetry, setTelemetry] = useState(null)
@@ -12,10 +12,11 @@ export function useTelemetry(maxHistory = 120) {
   const connect = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) return
 
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const wsUrl = `${protocol}//${window.location.host}/ws/telemetry`
+    const wsUrl = getWsUrl()
+    console.log('Connecting to Telemetry WebSocket:', wsUrl)
     const ws = new WebSocket(wsUrl)
     wsRef.current = ws
+
 
     ws.onopen = () => {
       setConnected(true)

@@ -6,17 +6,19 @@ export default function Sparkline({
   width = 70,
   height = 18,
   color = '#38BDF8',
-  status = 'NORMAL'
+  status = 'NORMAL',
+  selectedFrame = null
 }) {
-  const points = data
+  const windowSize = 25
+  const rawPoints = data
     .map(d => d[field])
     .filter(v => v !== null && v !== undefined && !isNaN(v))
-    .slice(-25)
 
-  if (points.length < 2) {
+  if (rawPoints.length < 2) {
     return <div className="w-[70px] h-[18px] bg-bg-secondary/40 rounded-xs" />
   }
 
+  const points = rawPoints.slice(-windowSize)
   const min = Math.min(...points)
   const max = Math.max(...points)
   const range = max - min || 1
@@ -26,6 +28,16 @@ export default function Sparkline({
     status === 'WARNING' ? '#F59E0B' :
     color
 
+  // Calculate index for dot (selectedFrame mapped to window, or latest)
+  let dotIdx = points.length - 1
+  if (selectedFrame != null && selectedFrame >= 0 && selectedFrame < data.length) {
+    const offsetFromEnd = data.length - 1 - selectedFrame
+    const candidateIdx = points.length - 1 - offsetFromEnd
+    if (candidateIdx >= 0 && candidateIdx < points.length) {
+      dotIdx = candidateIdx
+    }
+  }
+
   const svgPoints = points
     .map((v, i) => {
       const x = (i / (points.length - 1)) * (width - 4) + 2
@@ -33,6 +45,10 @@ export default function Sparkline({
       return `${x.toFixed(1)},${y.toFixed(1)}`
     })
     .join(' ')
+
+  const dotVal = points[dotIdx]
+  const dotX = (dotIdx / (points.length - 1)) * (width - 4) + 2
+  const dotY = height - 2 - ((dotVal - min) / range) * (height - 6)
 
   return (
     <svg width={width} height={height} className="overflow-visible inline-block">
@@ -44,12 +60,14 @@ export default function Sparkline({
         strokeLinejoin="round"
         points={svgPoints}
       />
-      {points.length > 0 && (
+      {dotVal != null && (
         <circle
-          cx={(width - 2).toFixed(1)}
-          cy={(height - 2 - ((points[points.length - 1] - min) / range) * (height - 6)).toFixed(1)}
-          r="2"
-          fill={strokeColor}
+          cx={dotX.toFixed(1)}
+          cy={dotY.toFixed(1)}
+          r={selectedFrame != null ? '2.5' : '2'}
+          fill={selectedFrame != null ? '#00F0FF' : strokeColor}
+          stroke={selectedFrame != null ? '#FFFFFF' : 'none'}
+          strokeWidth={selectedFrame != null ? '0.75' : '0'}
         />
       )}
     </svg>

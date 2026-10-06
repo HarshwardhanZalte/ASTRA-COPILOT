@@ -6,6 +6,7 @@ import {
   Tooltip,
   ReferenceLine,
   ReferenceArea,
+  ReferenceDot,
   ResponsiveContainer
 } from 'recharts'
 
@@ -48,6 +49,7 @@ export default function TelemetryChart({
   field,
   height = 125,
   faultInjectedAt = null,
+  selectedFrame = null,
   label = '',
   showThresholds = true
 }) {
@@ -61,14 +63,29 @@ export default function TelemetryChart({
     i,
   }))
 
+  // Determine current active reading: historical scrubbed frame or latest
+  const activePoint = (selectedFrame != null && chartData[selectedFrame])
+    ? chartData[selectedFrame]
+    : chartData[chartData.length - 1]
+
+  const activeVal = activePoint?.v
+  const isScrubbing = selectedFrame != null && selectedFrame < chartData.length - 1
+
   return (
     <div className="w-full">
       {label && (
         <div className="flex items-center justify-between text-[10px] font-mono text-text-dim mb-1 px-1">
-          <span className="uppercase tracking-wider text-text-secondary font-medium">{label}</span>
-          {chartData.length > 0 && chartData[chartData.length - 1].v != null && (
-            <span className="font-bold text-xs" style={{ color }}>
-              {Number(chartData[chartData.length - 1].v).toFixed(2)} {meta.unit}
+          <div className="flex items-center gap-1.5">
+            <span className="uppercase tracking-wider text-text-secondary font-medium">{label}</span>
+            {isScrubbing && (
+              <span className="px-1 text-[8px] font-bold text-hud-amber border border-hud-amber/40 bg-hud-amber/10 rounded-xs">
+                REPLAY T-{chartData.length - 1 - selectedFrame}s
+              </span>
+            )}
+          </div>
+          {activeVal != null && (
+            <span className="font-bold text-xs" style={{ color: isScrubbing ? '#F59E0B' : color }}>
+              {Number(activeVal).toFixed(2)} {meta.unit}
             </span>
           )}
         </div>
@@ -117,13 +134,42 @@ export default function TelemetryChart({
               strokeDasharray="3 3"
               strokeWidth={1.5}
               label={{
-                value: 'FAULT INJECTED',
+                value: 'FAULT',
                 fontSize: 8,
                 fill: '#EF4444',
                 position: 'top',
                 fontFamily: 'JetBrains Mono'
               }}
             />
+          )}
+
+          {/* Scrubbed Historical Frame Cursor Line & Coordinate Dot */}
+          {selectedFrame != null && chartData[selectedFrame] && (
+            <>
+              <ReferenceLine
+                x={chartData[selectedFrame]?.t}
+                stroke="#00F0FF"
+                strokeWidth={2}
+                strokeDasharray="2 2"
+                label={{
+                  value: `T-${chartData.length - 1 - selectedFrame}s`,
+                  fontSize: 8,
+                  fill: '#00F0FF',
+                  position: 'insideTopLeft',
+                  fontFamily: 'JetBrains Mono'
+                }}
+              />
+              {chartData[selectedFrame]?.v != null && (
+                <ReferenceDot
+                  x={chartData[selectedFrame]?.t}
+                  y={chartData[selectedFrame]?.v}
+                  r={4.5}
+                  fill="#00F0FF"
+                  stroke="#FFFFFF"
+                  strokeWidth={2}
+                />
+              )}
+            </>
           )}
 
           <Area
@@ -142,4 +188,5 @@ export default function TelemetryChart({
     </div>
   )
 }
+
 

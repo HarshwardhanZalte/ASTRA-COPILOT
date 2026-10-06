@@ -230,11 +230,11 @@ export default function SatelliteVisualizer({
       {/* Subsystem Quick Stats Bar Below Schematic */}
       <div className="grid grid-cols-5 gap-2 pt-3 border-t border-border/50 text-center font-mono text-[10px]">
         {[
-          { key: 'power', name: 'POWER', val: telemetry?.battery_voltage != null ? `${telemetry.battery_voltage.toFixed(1)}V` : '28.0V', score: scores.power },
-          { key: 'thermal', name: 'THERMAL', val: telemetry?.cpu_temperature != null ? `${telemetry.cpu_temperature.toFixed(1)}°C` : '45.0°C', score: scores.thermal },
-          { key: 'communication', name: 'COMMS', val: telemetry?.communication_signal != null ? `${telemetry.communication_signal.toFixed(0)}dBm` : '-75dBm', score: scores.communication },
-          { key: 'computing', name: 'COMPUTE', val: telemetry?.cpu_load != null ? `${telemetry.cpu_load.toFixed(0)}%` : '35%', score: scores.computing },
-          { key: 'payload', name: 'PAYLOAD', val: telemetry?.reaction_wheel_speed != null ? `${telemetry.reaction_wheel_speed.toFixed(0)}RPM` : '3000RPM', score: scores.payload },
+          { key: 'power', name: 'POWER', val: telemetry?.battery_voltage != null ? `${Number(telemetry.battery_voltage).toFixed(1)}V` : '—', score: scores.power },
+          { key: 'thermal', name: 'THERMAL', val: telemetry?.cpu_temperature != null ? `${Number(telemetry.cpu_temperature).toFixed(1)}°C` : '—', score: scores.thermal },
+          { key: 'communication', name: 'COMMS', val: telemetry?.communication_signal != null ? `${Number(telemetry.communication_signal).toFixed(0)}dBm` : '—', score: scores.communication },
+          { key: 'computing', name: 'COMPUTE', val: telemetry?.cpu_load != null ? `${Number(telemetry.cpu_load).toFixed(0)}%` : '—', score: scores.computing },
+          { key: 'payload', name: 'PAYLOAD', val: telemetry?.reaction_wheel_speed != null ? `${Number(telemetry.reaction_wheel_speed).toFixed(0)}RPM` : '—', score: scores.payload },
         ].map(item => (
           <div
             key={item.key}
@@ -248,7 +248,9 @@ export default function SatelliteVisualizer({
             <div className="text-xs font-bold mt-0.5" style={{ color: getSubsystemColor(item.score) }}>
               {item.val}
             </div>
-            <div className="text-[8px] text-text-dim mt-0.5">DEV: {(item.score * 100).toFixed(0)}%</div>
+            <div className="text-[8px] text-text-dim mt-0.5">
+              DEV: {(item.score * 100).toFixed(0)}%
+            </div>
           </div>
         ))}
       </div>

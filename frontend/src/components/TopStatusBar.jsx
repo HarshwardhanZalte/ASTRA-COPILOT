@@ -19,10 +19,11 @@ export default function TopStatusBar() {
   }, [])
 
   const ml = telemetry?.ml || {}
-  const isAnomaly = ml.is_anomaly
+  const isAnomaly = Boolean(ml.is_anomaly)
   const anomalyScore = ml.anomaly_score != null ? Math.round(ml.anomaly_score * 100) : 0
-  const solarPower = telemetry?.solar_power ?? 1.5
-  const inEclipse = solarPower < 0.2
+  const solarPower = telemetry?.solar_power
+  const inEclipse = solarPower != null ? solarPower < 0.2 : false
+
 
   return (
     <header className="h-12 border-b border-border bg-bg-secondary/90 backdrop-blur-md flex items-center justify-between px-4 text-xs font-mono select-none z-20">

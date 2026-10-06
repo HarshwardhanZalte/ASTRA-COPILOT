@@ -164,6 +164,7 @@ export default function TelemetryPage() {
                           field={field}
                           color={color}
                           status={status}
+                          selectedFrame={selectedFrame}
                         />
                       </td>
                       <td className="px-3 py-2 text-center">
@@ -191,6 +192,7 @@ export default function TelemetryPage() {
                 label={`${ALL_FIELDS.find(f => f.field === pinnedField)?.label} (${ALL_FIELDS.find(f => f.field === pinnedField)?.unit})`}
                 height={170}
                 faultInjectedAt={faultInjectedAt}
+                selectedFrame={selectedFrame}
               />
             </div>
           </Panel>
@@ -208,6 +210,7 @@ export default function TelemetryPage() {
                       label={`${info?.label} (${info?.unit})`}
                       height={100}
                       faultInjectedAt={faultInjectedAt}
+                      selectedFrame={selectedFrame}
                     />
                   </div>
                 )

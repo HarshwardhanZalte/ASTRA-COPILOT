@@ -91,7 +91,12 @@ export default function ScenariosPage() {
   const [selectedFrame, setSelectedFrame] = useState(null)
 
   const activeScenario = MISSION_SCENARIOS.find(s => s.id === activeScenarioId)
-  const ml = telemetry?.ml || {}
+
+  // Display telemetry for the selected historical frame or the live frame
+  const displayTelemetry = selectedFrame != null && history[selectedFrame]
+    ? history[selectedFrame]
+    : telemetry
+  const ml = displayTelemetry?.ml || {}
 
   const handleLaunchScenario = async (scenario) => {
     setActiveScenarioId(scenario.id)
@@ -123,11 +128,6 @@ export default function ScenariosPage() {
       console.error('Failed to clear scenario:', e)
     }
   }
-
-  // Display telemetry for the selected historical frame or the live frame
-  const displayTelemetry = selectedFrame != null && history[selectedFrame]
-    ? history[selectedFrame]
-    : telemetry
 
   return (
     <div className="p-4 space-y-4 max-w-[1600px] mx-auto">
@@ -305,6 +305,7 @@ export default function ScenariosPage() {
                     label="Battery Voltage (V)"
                     height={100}
                     faultInjectedAt={faultInjectedAt}
+                    selectedFrame={selectedFrame}
                   />
                   <TelemetryChart
                     data={history}
@@ -312,6 +313,7 @@ export default function ScenariosPage() {
                     label="CPU Temperature (°C)"
                     height={100}
                     faultInjectedAt={faultInjectedAt}
+                    selectedFrame={selectedFrame}
                   />
                   <TelemetryChart
                     data={history}
@@ -319,6 +321,7 @@ export default function ScenariosPage() {
                     label="Signal Strength (dBm)"
                     height={100}
                     faultInjectedAt={faultInjectedAt}
+                    selectedFrame={selectedFrame}
                   />
                 </div>
               </div>
