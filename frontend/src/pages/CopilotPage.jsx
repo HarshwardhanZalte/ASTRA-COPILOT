@@ -71,8 +71,8 @@ export default function CopilotPage() {
         </label>
       </div>
 
-      <div className="grid min-h-[min(70dvh,720px)] flex-1 grid-cols-1 gap-4 lg:grid-cols-12">
-        <div className="h-[min(70dvh,720px)] min-h-[440px] lg:col-span-7">
+      <div className="grid min-h-[560px] h-[calc(100vh-140px)] flex-1 grid-cols-1 gap-4 lg:grid-cols-12 overflow-hidden">
+        <div className="h-full min-h-0 lg:col-span-7 flex flex-col">
           <CopilotPanel incidentId={selectedIncidentId || null} />
         </div>
 

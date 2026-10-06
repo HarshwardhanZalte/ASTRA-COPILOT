@@ -31,7 +31,14 @@ export default function CopilotPanel({ incidentId = null, compact = false }) {
   }, [])
 
   useEffect(() => {
-    if (msgRef.current) msgRef.current.scrollTop = msgRef.current.scrollHeight
+    const scrollToBottom = () => {
+      if (msgRef.current) {
+        msgRef.current.scrollTop = msgRef.current.scrollHeight
+      }
+    }
+    scrollToBottom()
+    const timer = setTimeout(scrollToBottom, 60)
+    return () => clearTimeout(timer)
   }, [messages, loading])
 
   const sendMessage = async (question) => {
