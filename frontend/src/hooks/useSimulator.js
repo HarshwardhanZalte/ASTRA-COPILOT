@@ -47,19 +47,35 @@ export function useSimulator() {
     refreshStatus()
   }, [refreshStatus])
 
-  const injectFault = useCallback(async (faultType, severity) => {
-    await simulatorApi.injectFault(faultType, severity)
-    refreshStatus()
-  }, [refreshStatus])
+  const injectFault = useCallback(async (faultType, severity = 'HIGH') => {
+    setLoading(true)
+    try {
+      const res = await simulatorApi.injectFault(faultType, severity)
+      await refreshStatus()
+      await refreshEvents()
+      return res
+    } finally {
+      setLoading(false)
+    }
+  }, [refreshStatus, refreshEvents])
 
   const clearFault = useCallback(async () => {
-    await simulatorApi.clearFault()
-    refreshStatus()
-  }, [refreshStatus])
+    setLoading(true)
+    try {
+      const res = await simulatorApi.clearFault()
+      await refreshStatus()
+      await refreshEvents()
+      return res
+    } finally {
+      setLoading(false)
+    }
+  }, [refreshStatus, refreshEvents])
 
   const setConditions = useCallback(async (conditions) => {
-    await simulatorApi.setConditions(conditions)
-  }, [])
+    const res = await simulatorApi.setConditions(conditions)
+    await refreshStatus()
+    return res
+  }, [refreshStatus])
 
   return { status, events, loading, start, pause, reset, injectFault, clearFault, setConditions, refreshStatus }
 }

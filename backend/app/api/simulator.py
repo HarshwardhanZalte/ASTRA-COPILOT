@@ -1,4 +1,4 @@
-﻿from fastapi import APIRouter
+from fastapi import APIRouter
 from pydantic import BaseModel, Field
 from app.services.telemetry_service import (
     start_simulation, pause_simulation, reset_simulation,
@@ -42,22 +42,32 @@ async def inject_fault_endpoint(request: FaultRequest):
         severity = FaultSeverity(request.severity.upper())
     except ValueError as e:
         return {"error": str(e)}
+    if not sim_state.running:
+        await start_simulation()
     return inject_fault(fault_type, severity)
 
 @router.post("/fault/battery")
 async def inject_battery_fault(severity: str = "HIGH"):
+    if not sim_state.running:
+        await start_simulation()
     return inject_fault(FaultType.BATTERY_DEGRADATION, FaultSeverity(severity.upper()))
 
 @router.post("/fault/thermal")
 async def inject_thermal_fault(severity: str = "HIGH"):
+    if not sim_state.running:
+        await start_simulation()
     return inject_fault(FaultType.THERMAL_RUNAWAY, FaultSeverity(severity.upper()))
 
 @router.post("/fault/communication")
 async def inject_communication_fault(severity: str = "HIGH"):
+    if not sim_state.running:
+        await start_simulation()
     return inject_fault(FaultType.COMMUNICATION_FAILURE, FaultSeverity(severity.upper()))
 
 @router.post("/fault/sensor-drift")
 async def inject_sensor_drift(severity: str = "MEDIUM"):
+    if not sim_state.running:
+        await start_simulation()
     return inject_fault(FaultType.SENSOR_DRIFT, FaultSeverity(severity.upper()))
 
 @router.post("/clear-fault")

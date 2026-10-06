@@ -45,7 +45,7 @@ export default function SimulatorPage() {
   const { telemetry, history, connected, faultInjectedAt, markFaultInjection } = useTelemetry(200)
   const { status, events, loading, start, pause, reset, injectFault, clearFault, setConditions } = useSimulator()
 
-  const [selectedScenario, setSelectedScenario] = useState('none')
+  const [selectedScenario, setSelectedScenario] = useState('battery_degradation')
   const [severity, setSeverity] = useState('HIGH')
   const [conditions, setConditionsState] = useState({
     noise_enabled: false,
@@ -63,9 +63,20 @@ export default function SimulatorPage() {
   }, [events])
 
   const handleInjectFault = async () => {
-    if (selectedScenario === 'none') return
-    markFaultInjection()
-    await injectFault(selectedScenario, severity)
+    let scenarioToInject = selectedScenario
+    if (scenarioToInject === 'none') {
+      scenarioToInject = 'battery_degradation'
+      setSelectedScenario('battery_degradation')
+    }
+    try {
+      if (!status?.running) {
+        await start()
+      }
+      markFaultInjection()
+      await injectFault(scenarioToInject, severity)
+    } catch (err) {
+      console.error('Failed to inject fault:', err)
+    }
   }
 
   const handleConditionToggle = async (key) => {
@@ -186,15 +197,16 @@ export default function SimulatorPage() {
           <div className="p-3 border-b border-border bg-bg-secondary/40">
             <button
               onClick={handleInjectFault}
-              disabled={selectedScenario === 'none' || !isRunning}
-              className="w-full flex items-center justify-center gap-2 py-2 text-xs font-mono font-bold border border-status-error text-status-error bg-status-error/15 hover:bg-status-error/25 shadow-hud-red rounded-xs disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-2 py-2 text-xs font-mono font-bold border border-status-error text-status-error bg-status-error/15 hover:bg-status-error/25 shadow-hud-red rounded-xs disabled:opacity-40 transition-all cursor-pointer"
             >
-              <Zap size={13} /> INJECT FAULT
+              <Zap size={13} className={loading ? 'animate-spin' : ''} /> {loading ? 'INJECTING...' : 'INJECT FAULT'}
             </button>
             {status?.fault_active && (
               <button
                 onClick={clearFault}
-                className="w-full mt-2 flex items-center justify-center gap-2 py-1.5 text-[10px] font-mono font-bold border border-border text-text-secondary bg-bg-panel hover:text-text-primary rounded-xs transition-all"
+                disabled={loading}
+                className="w-full mt-2 flex items-center justify-center gap-2 py-1.5 text-[10px] font-mono font-bold border border-border text-text-secondary bg-bg-panel hover:text-text-primary rounded-xs transition-all cursor-pointer"
               >
                 <X size={11} /> CLEAR ACTIVE FAULT
               </button>

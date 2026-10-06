@@ -18,16 +18,22 @@ export const getWsUrl = () => {
 export const api = {
   async get(path) {
     const res = await fetch(`${BASE_URL}${path}`)
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    if (!res.ok) {
+      const errText = await res.text().catch(() => '')
+      throw new Error(`HTTP ${res.status}: ${errText}`)
+    }
     return res.json()
   },
-  async post(path, body) {
+  async post(path, body = {}) {
     const res = await fetch(`${BASE_URL}${path}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
+      body: JSON.stringify(body ?? {})
     })
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    if (!res.ok) {
+      const errText = await res.text().catch(() => '')
+      throw new Error(`HTTP ${res.status}: ${errText}`)
+    }
     return res.json()
   }
 }
