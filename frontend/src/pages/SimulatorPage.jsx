@@ -79,95 +79,100 @@ export default function SimulatorPage() {
   const isRunning = status?.running
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-bg-deep">
       {/* Header */}
-      <div className="border-b border-[#263142] px-6 py-3 flex items-center justify-between" style={{ background: '#0D111A' }}>
+      <div className="border-b border-border px-6 py-3 flex items-center justify-between bg-bg-primary/90 backdrop-blur-md">
         <div className="flex items-center gap-6">
           <div>
-            <div className="text-[10px] tracking-widest text-[#64748B] font-mono">ASTRA / SIMULATION CONTROL</div>
-            <div className="text-sm font-semibold text-[#E5E7EB] font-mono">SAT-01</div>
+            <div className="text-[10px] tracking-widest text-text-dim font-mono mb-0.5">
+              ASTRA SIMULATION ENGINE • HARDWARE-IN-THE-LOOP
+            </div>
+            <div className="text-sm font-orbitron font-bold text-text-primary flex items-center gap-2">
+              SAT-01 Fault Injector
+            </div>
           </div>
           <div className="flex items-center gap-2">
             {status?.demo_data_loaded && (
-              <span className="text-[9px] font-mono text-[#38BDF8]">DEMO HISTORY</span>
+              <span className="px-2 py-0.5 border border-hud-cyan/40 bg-hud-cyan/10 text-[9px] font-mono text-hud-cyan font-bold rounded-xs shadow-hud-cyan">
+                DEMO HISTORY
+              </span>
             )}
-            <div className={`w-1.5 h-1.5 rounded-full ${isRunning ? 'bg-[#22C55E]' : 'bg-[#64748B]'}`} />
-            <span className={`text-xs font-mono ${isRunning ? 'text-[#22C55E]' : 'text-[#64748B]'}`}>
-              {isRunning ? 'RUNNING' : 'STOPPED'}
+            <div className={`w-2 h-2 rounded-full ${isRunning ? 'bg-hud-emerald shadow-[0_0_8px_#10B981] radar-dot' : 'bg-text-dim'}`} />
+            <span className={`text-xs font-mono font-bold ${isRunning ? 'text-hud-emerald' : 'text-text-dim'}`}>
+              {isRunning ? 'SIMULATION RUNNING (1Hz)' : 'SIMULATION PAUSED'}
             </span>
           </div>
-          {connected ? (
-            <span className="text-[10px] font-mono text-[#22C55E]">WS LIVE</span>
-          ) : (
-            <span className="text-[10px] font-mono text-[#EF4444]">WS DISCONNECTED</span>
-          )}
         </div>
+
+        {/* Action buttons */}
         <div className="flex items-center gap-2">
           <button
             onClick={start}
             disabled={isRunning || loading}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono border disabled:opacity-40 disabled:cursor-not-allowed"
-            style={{ border: '1px solid #22C55E', color: '#22C55E' }}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono font-bold border border-hud-emerald text-hud-emerald bg-hud-emerald/10 hover:bg-hud-emerald/20 shadow-hud-green rounded-xs transition-all disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            <Play size={11} /> START
+            <Play size={12} /> START
           </button>
           <button
             onClick={pause}
             disabled={!isRunning || loading}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono border disabled:opacity-40 disabled:cursor-not-allowed"
-            style={{ border: '1px solid #F59E0B', color: '#F59E0B' }}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono font-bold border border-hud-amber text-hud-amber bg-hud-amber/10 hover:bg-hud-amber/20 rounded-xs transition-all disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            <Pause size={11} /> PAUSE
+            <Pause size={12} /> PAUSE
           </button>
           <button
             onClick={reset}
             disabled={loading}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono border disabled:opacity-40"
-            style={{ border: '1px solid #263142', color: '#94A3B8' }}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono font-semibold border border-border text-text-secondary bg-bg-panel hover:text-text-primary hover:border-text-dim rounded-xs transition-all disabled:opacity-40"
           >
-            <RotateCcw size={11} /> RESET
+            <RotateCcw size={12} /> RESET BASELINE
           </button>
         </div>
       </div>
 
       {/* Body */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left Panel */}
-        <div className="w-64 flex-shrink-0 border-r border-[#263142] flex flex-col overflow-y-auto" style={{ background: '#0D111A' }}>
-          {/* Scenario */}
-          <Panel title="SCENARIO" className="border-0 border-b border-[#263142]">
+        {/* Left Panel: Controls */}
+        <div className="w-68 flex-shrink-0 border-r border-border flex flex-col overflow-y-auto bg-bg-primary/80">
+          {/* Scenario Selection */}
+          <Panel title="FAULT SCENARIO" className="border-0 border-b border-border rounded-none">
             <div className="p-3 space-y-1">
               {SCENARIOS.map(s => (
-                <label key={s.id} className="flex items-center gap-2.5 py-1.5 px-2 cursor-pointer hover:bg-white/3 rounded">
+                <label
+                  key={s.id}
+                  className={`flex items-center gap-2.5 py-1.5 px-2 cursor-pointer rounded-xs transition-colors ${
+                    selectedScenario === s.id ? 'bg-hud-cyan/15 text-hud-cyan font-semibold border border-hud-cyan/30' : 'hover:bg-bg-panel/40 text-text-secondary'
+                  }`}
+                >
                   <input
                     type="radio"
                     name="scenario"
                     value={s.id}
                     checked={selectedScenario === s.id}
                     onChange={() => setSelectedScenario(s.id)}
-                    className="accent-[#38BDF8]"
+                    className="accent-hud-cyan"
                   />
-                  <span className="text-xs text-[#94A3B8]">{s.label}</span>
+                  <span className="text-xs font-mono">{s.label}</span>
                 </label>
               ))}
             </div>
           </Panel>
 
           {/* Severity */}
-          <Panel title="SEVERITY" className="border-0 border-b border-[#263142]">
+          <Panel title="INJECTION SEVERITY" className="border-0 border-b border-border rounded-none">
             <div className="p-3">
               <div className="grid grid-cols-2 gap-1.5">
                 {SEVERITIES.map(s => (
                   <button
                     key={s}
                     onClick={() => setSeverity(s)}
-                    className={`py-1.5 text-[10px] font-mono font-semibold border transition-all ${
+                    className={`py-1.5 text-[10px] font-mono font-bold border rounded-xs transition-all ${
                       severity === s
-                        ? s === 'CRITICAL' ? 'border-[#EF4444] text-[#EF4444] bg-[#EF4444]/10'
-                        : s === 'HIGH' ? 'border-[#F59E0B] text-[#F59E0B] bg-[#F59E0B]/10'
-                        : s === 'MEDIUM' ? 'border-[#38BDF8] text-[#38BDF8] bg-[#38BDF8]/10'
-                        : 'border-[#22C55E] text-[#22C55E] bg-[#22C55E]/10'
-                        : 'border-[#263142] text-[#64748B] hover:border-[#38BDF8]/50'
+                        ? s === 'CRITICAL' ? 'border-status-error text-status-error bg-status-error/20 shadow-hud-red'
+                        : s === 'HIGH' ? 'border-hud-amber text-hud-amber bg-hud-amber/20 shadow-hud-amber'
+                        : s === 'MEDIUM' ? 'border-hud-cyan text-hud-cyan bg-hud-cyan/20 shadow-hud-cyan'
+                        : 'border-hud-emerald text-hud-emerald bg-hud-emerald/20 shadow-hud-green'
+                        : 'border-border/70 text-text-dim hover:border-text-secondary'
                     }`}
                   >
                     {s}
@@ -177,133 +182,99 @@ export default function SimulatorPage() {
             </div>
           </Panel>
 
-          {/* Inject */}
-          <div className="p-3 border-b border-[#263142]">
+          {/* Inject Button */}
+          <div className="p-3 border-b border-border bg-bg-secondary/40">
             <button
               onClick={handleInjectFault}
               disabled={selectedScenario === 'none' || !isRunning}
-              className="w-full flex items-center justify-center gap-2 py-2 text-xs font-mono font-semibold border disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-              style={{ border: '1px solid #EF4444', color: '#EF4444', background: 'rgba(239,68,68,0.05)' }}
+              className="w-full flex items-center justify-center gap-2 py-2 text-xs font-mono font-bold border border-status-error text-status-error bg-status-error/15 hover:bg-status-error/25 shadow-hud-red rounded-xs disabled:opacity-30 disabled:cursor-not-allowed transition-all"
             >
-              <Zap size={12} /> INJECT FAULT
+              <Zap size={13} /> INJECT FAULT
             </button>
             {status?.fault_active && (
               <button
                 onClick={clearFault}
-                className="w-full mt-2 flex items-center justify-center gap-2 py-1.5 text-[10px] font-mono border"
-                style={{ border: '1px solid #263142', color: '#94A3B8' }}
+                className="w-full mt-2 flex items-center justify-center gap-2 py-1.5 text-[10px] font-mono font-bold border border-border text-text-secondary bg-bg-panel hover:text-text-primary rounded-xs transition-all"
               >
-                <X size={10} /> CLEAR FAULT
+                <X size={11} /> CLEAR ACTIVE FAULT
               </button>
             )}
           </div>
 
-          {/* Telemetry Conditions */}
-          <Panel title="TELEMETRY CONDITIONS" className="border-0 border-b border-[#263142]">
-            <div className="p-3 space-y-3">
+          {/* Telemetry Noise & Artifact Conditions */}
+          <Panel title="SIGNAL DISTORTIONS" className="border-0 border-b border-border rounded-none">
+            <div className="p-3 space-y-2.5">
               {[
-                { key: 'noise', label: 'Noise' },
+                { key: 'noise', label: 'Gaussian Noise' },
                 { key: 'missing', label: 'Missing Values' },
-                { key: 'delay', label: 'Delayed Data' },
-                { key: 'outlier', label: 'Outliers' },
+                { key: 'delay', label: 'Latency Drift' },
+                { key: 'outlier', label: 'Transient Outliers' },
               ].map(({ key, label }) => (
                 <div key={key} className="flex items-center justify-between">
-                  <span className="text-xs text-[#94A3B8]">{label}</span>
+                  <span className="text-xs font-mono text-text-secondary">{label}</span>
                   <button
                     onClick={() => handleConditionToggle(key)}
-                    className={`px-2 py-0.5 text-[10px] font-mono border transition-all ${
+                    className={`px-2 py-0.5 text-[10px] font-mono font-bold border rounded-xs transition-all ${
                       conditions[`${key}_enabled`]
-                        ? 'border-[#22C55E] text-[#22C55E] bg-[#22C55E]/10'
-                        : 'border-[#263142] text-[#64748B]'
+                        ? 'border-hud-emerald text-hud-emerald bg-hud-emerald/15 shadow-hud-green'
+                        : 'border-border text-text-dim bg-bg-panel/40'
                     }`}
                   >
-                    {conditions[`${key}_enabled`] ? 'ON' : 'OFF'}
+                    {conditions[`${key}_enabled`] ? 'ACTIVE' : 'OFF'}
                   </button>
                 </div>
               ))}
             </div>
           </Panel>
 
-          {/* ML Status */}
-          <Panel title="MODEL STATUS" className="border-0">
+          {/* Real-time ML Evaluation */}
+          <Panel title="REAL-TIME ML INFERENCE" className="border-0 rounded-none">
             <div className="p-3 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] text-[#64748B]">Anomaly Detection</span>
-                <span className="text-[10px] font-mono text-[#22C55E]">ACTIVE</span>
+                <span className="text-[10px] font-mono text-text-dim">DETECTOR STATE</span>
+                <span className="text-[10px] font-mono font-bold text-hud-emerald">ONLINE (13 FEAT)</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-[10px] text-[#64748B]">Anomaly Score</span>
-                <span className={`text-sm font-mono font-bold ${
-                  (ml.anomaly_score || 0) >= 0.7 ? 'text-[#EF4444]'
-                  : (ml.anomaly_score || 0) >= 0.4 ? 'text-[#F59E0B]'
-                  : 'text-[#22C55E]'
+                <span className="text-[10px] font-mono text-text-dim">ANOMALY SCORE</span>
+                <span className={`text-base font-orbitron font-extrabold ${
+                  (ml.anomaly_score || 0) >= 0.7 ? 'text-status-error glow-red-text'
+                  : (ml.anomaly_score || 0) >= 0.4 ? 'text-hud-amber glow-amber-text'
+                  : 'text-hud-cyan glow-cyan-text'
                 }`}>
                   {(ml.anomaly_score || 0).toFixed(2)}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-[10px] text-[#64748B]">Confidence</span>
-                <span className="text-xs font-mono text-[#E5E7EB]">
-                  {ml.confidence ? `${Math.round(ml.confidence * 100)}%` : '—'}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] text-[#64748B]">Severity</span>
-                {ml.severity ? <StatusBadge status={ml.severity} /> : <span className="text-[10px] text-[#64748B]">—</span>}
+                <span className="text-[10px] font-mono text-text-dim">SEVERITY LEVEL</span>
+                <StatusBadge status={ml.severity || 'NORMAL'} pulse={(ml.anomaly_score || 0) >= 0.7} />
               </div>
               {ml.is_anomaly && (
-                <div className="mt-2 pt-2 border-t border-[#263142]">
-                  <div className="text-[10px] text-[#64748B] mb-1">Root Cause</div>
-                  <div className="text-[11px] text-[#E5E7EB]">{ml.root_cause}</div>
-                  <div className="text-[10px] text-[#64748B] mt-0.5">
+                <div className="mt-2 pt-2 border-t border-border">
+                  <div className="text-[9px] font-orbitron font-bold text-text-dim mb-1 uppercase">ESTIMATED ROOT CAUSE</div>
+                  <div className="text-xs font-display font-semibold text-text-primary">{ml.root_cause}</div>
+                  <div className="text-[10px] font-mono text-hud-cyan mt-0.5">
                     {ml.root_cause_confidence ? `${Math.round(ml.root_cause_confidence * 100)}% confidence` : ''}
                   </div>
-                </div>
-              )}
-              {/* Subsystem scores */}
-              {ml.subsystem_scores && (
-                <div className="mt-2 pt-2 border-t border-[#263142] space-y-1.5">
-                  <div className="text-[10px] text-[#64748B] mb-1">SUBSYSTEM ANALYSIS</div>
-                  {Object.entries(ml.subsystem_scores).map(([sub, score]) => (
-                    <div key={sub} className="flex items-center gap-2">
-                      <span className="text-[10px] font-mono text-[#64748B] w-14 uppercase">{sub}</span>
-                      <div className="flex-1 h-1 bg-[#263142]">
-                        <div
-                          className="h-full transition-all duration-300"
-                          style={{
-                            width: `${Math.round(score * 100)}%`,
-                            background: score >= 0.7 ? '#EF4444' : score >= 0.4 ? '#F59E0B' : '#22C55E'
-                          }}
-                        />
-                      </div>
-                      <span className="text-[10px] font-mono text-[#94A3B8] w-8 text-right">
-                        {score.toFixed(2)}
-                      </span>
-                    </div>
-                  ))}
                 </div>
               )}
             </div>
           </Panel>
         </div>
 
-        {/* Center — Telemetry */}
+        {/* Center: Real-time Telemetry Grid & Waveforms */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Telemetry Table */}
-          <div className="border-b border-[#263142]" style={{ height: '45%', overflowY: 'auto' }}>
-            <div className="px-4 py-2 border-b border-[#263142]" style={{ background: '#0D111A' }}>
-              <div className="text-[10px] font-semibold tracking-widest text-[#94A3B8] uppercase">Live Telemetry</div>
-            </div>
-            <table className="w-full">
+          <div className="border-b border-border overflow-y-auto" style={{ height: '42%' }}>
+            <table className="w-full text-left border-collapse font-mono text-xs">
               <thead>
-                <tr className="border-b border-[#263142]">
-                  <th className="px-4 py-1.5 text-left text-[10px] font-mono text-[#64748B] font-normal">TIME (UTC)</th>
-                  <th className="px-4 py-1.5 text-left text-[10px] font-mono text-[#64748B] font-normal">PARAMETER</th>
-                  <th className="px-4 py-1.5 text-right text-[10px] font-mono text-[#64748B] font-normal">VALUE</th>
-                  <th className="px-4 py-1.5 text-center text-[10px] font-mono text-[#64748B] font-normal">STATUS</th>
+                <tr className="border-b border-border bg-bg-secondary/70 sticky top-0 text-[9px] font-orbitron tracking-wider text-text-dim">
+                  <th className="px-4 py-1.5">TIME (UTC)</th>
+                  <th className="px-4 py-1.5">PARAMETER</th>
+                  <th className="px-4 py-1.5 text-right">VALUE</th>
+                  <th className="px-4 py-1.5 text-center">STATUS</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-border/40">
                 {TELEMETRY_PARAMS.map(({ field, label, unit }) => {
                   const val = telemetry?.[field]
                   const status = statuses[field] || 'NORMAL'
@@ -311,19 +282,19 @@ export default function SimulatorPage() {
                     ? new Date(telemetry.timestamp).toLocaleTimeString('en-US', { hour12: false })
                     : '—'
                   return (
-                    <tr key={field} className="border-b border-[#1a2332] hover:bg-white/2">
-                      <td className="px-4 py-1.5 font-mono text-[11px] text-[#64748B]">{timeStr}</td>
-                      <td className="px-4 py-1.5 text-[11px] text-[#94A3B8]">{label}</td>
-                      <td className="px-4 py-1.5 font-mono text-[11px] text-right">
-                        <span className={`${
-                          status === 'CRITICAL' ? 'text-[#EF4444]'
-                          : status === 'WARNING' ? 'text-[#F59E0B]'
-                          : 'text-[#E5E7EB]'
+                    <tr key={field} className="hover:bg-bg-panel/40 transition-colors">
+                      <td className="px-4 py-1 font-mono text-[10px] text-text-dim">{timeStr}</td>
+                      <td className="px-4 py-1 text-[11px] text-text-secondary">{label}</td>
+                      <td className="px-4 py-1 font-mono text-[11px] text-right">
+                        <span className={`font-bold ${
+                          status === 'CRITICAL' ? 'text-status-error'
+                          : status === 'WARNING' ? 'text-hud-amber'
+                          : 'text-text-primary'
                         }`}>
                           {val != null ? `${val.toFixed(2)} ${unit}` : '—'}
                         </span>
                       </td>
-                      <td className="px-4 py-1.5 text-center">
+                      <td className="px-4 py-1 text-center">
                         <StatusBadge status={status} />
                       </td>
                     </tr>
@@ -337,13 +308,13 @@ export default function SimulatorPage() {
           <div className="flex-1 overflow-y-auto p-3">
             <div className="grid grid-cols-2 gap-3">
               {CHART_FIELDS.map(({ field, label }) => (
-                <Panel key={field} compact className="">
+                <Panel key={field} compact>
                   <div className="px-3 pt-2">
                     <TelemetryChart
                       data={history}
                       field={field}
                       label={label}
-                      height={110}
+                      height={105}
                       faultInjectedAt={faultInjectedAt}
                     />
                   </div>
@@ -353,31 +324,41 @@ export default function SimulatorPage() {
           </div>
         </div>
 
-        {/* Right — Event Log */}
-        <div className="w-64 flex-shrink-0 border-l border-[#263142] flex flex-col" style={{ background: '#0D111A' }}>
-          <div className="px-3 py-2.5 border-b border-[#263142]">
-            <div className="text-[10px] font-semibold tracking-widest text-[#94A3B8] uppercase">Event Log</div>
+        {/* Right Panel: Mission Simulation Event Log */}
+        <div className="w-68 flex-shrink-0 border-l border-border flex flex-col bg-bg-primary/80">
+          <div className="px-3 py-2 border-b border-border bg-bg-secondary/60">
+            <div className="text-[10px] font-orbitron font-bold tracking-widest text-text-secondary uppercase">
+              MISSION EVENT LOG
+            </div>
           </div>
-          <div ref={eventLogRef} className="flex-1 overflow-y-auto p-2 space-y-1.5">
-            {events.length === 0 && (
-              <div className="text-[10px] text-[#64748B] p-2">Start simulation to see events</div>
+          <div ref={eventLogRef} className="flex-1 overflow-y-auto p-3 space-y-2">
+            {events.length === 0 ? (
+              <div className="text-[10px] font-mono text-text-dim text-center py-6">
+                Start simulation to record real-time operational events
+              </div>
+            ) : (
+              events.map((ev, i) => {
+                const time = new Date(ev.timestamp).toLocaleTimeString('en-US', { hour12: false })
+                const isFault = ev.type === 'FAULT'
+                const isAnomaly = ev.type === 'ANOMALY'
+                return (
+                  <div key={i} className={`border-l-2 pl-2 py-0.5 ${
+                    isFault ? 'border-status-error bg-status-error/5' :
+                    isAnomaly ? 'border-hud-amber bg-hud-amber/5' :
+                    'border-hud-cyan bg-hud-cyan/5'
+                  }`}>
+                    <div className="text-[9px] font-mono text-text-dim">{time} UTC</div>
+                    <div className={`text-[10px] font-mono leading-tight ${
+                      isFault ? 'text-status-error font-semibold' :
+                      isAnomaly ? 'text-hud-amber font-semibold' :
+                      'text-text-primary'
+                    }`}>
+                      {ev.message}
+                    </div>
+                  </div>
+                )
+              })
             )}
-            {events.map((ev, i) => {
-              const time = new Date(ev.timestamp).toLocaleTimeString('en-US', { hour12: false })
-              const typeColors = {
-                FAULT: 'text-[#EF4444]',
-                ANOMALY: 'text-[#F59E0B]',
-                INCIDENT: 'text-[#38BDF8]',
-                ANALYSIS: 'text-[#A78BFA]',
-              }
-              const color = typeColors[ev.type] || 'text-[#94A3B8]'
-              return (
-                <div key={i} className="border-l-2 border-[#263142] pl-2">
-                  <div className="text-[9px] font-mono text-[#64748B]">{time}</div>
-                  <div className={`text-[10px] ${color}`}>{ev.message}</div>
-                </div>
-              )
-            })}
           </div>
         </div>
       </div>
